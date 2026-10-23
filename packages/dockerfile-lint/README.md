@@ -14,10 +14,16 @@ Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). St
 
 ## Install
 
+Build the server from the repository root (Go 1.23 or later):
+
+```bash
+go build -o mcp-dockerfile-lint ./packages/dockerfile-lint/cmd/mcp-dockerfile-lint
+```
+
 Claude Code:
 
 ```bash
-claude mcp add dockerfile-lint -- npx -y @basitalisandhu/mcp-dockerfile-lint@0.1.0
+claude mcp add dockerfile-lint -- /path/to/mcp-dockerfile-lint
 ```
 
 Add `-s user` to make it available in every project. Any client that reads `.mcp.json` (Claude Code, Claude Desktop, Cursor):
@@ -26,14 +32,13 @@ Add `-s user` to make it available in every project. Any client that reads `.mcp
 {
   "mcpServers": {
     "dockerfile-lint": {
-      "command": "npx",
-      "args": ["-y", "@basitalisandhu/mcp-dockerfile-lint@0.1.0"]
+      "command": "/path/to/mcp-dockerfile-lint"
     }
   }
 }
 ```
 
-Pin the version as shown so that an update to the package cannot change what runs in your editor without you noticing. From a checkout, use `"command": "node", "args": ["<path>/packages/dockerfile-lint/dist/index.js"]` after `npm install && npm run build` at the repository root.
+A container image is published as `ghcr.io/basitalisandhu/mcp-dockerfile-lint`; it runs the same binary on stdio (`docker run -i --rm ghcr.io/basitalisandhu/mcp-dockerfile-lint:0.1.0`).
 
 ## What it touches
 
@@ -49,12 +54,11 @@ Pin the version as shown so that an update to the package cannot change what run
 ## Build and test
 
 ```bash
-npm install        # at the repository root
-npm run build -w @basitalisandhu/mcp-dockerfile-lint
-npm test -w @basitalisandhu/mcp-dockerfile-lint
+go build -o mcp-dockerfile-lint ./packages/dockerfile-lint/cmd/mcp-dockerfile-lint   # at the repository root
+go test ./packages/dockerfile-lint/...
 ```
 
-Tests use `node:test` and the SDK's in-memory transport; they do not reach the network.
+The tests start the server on stdio and talk to it over JSON-RPC; set `MCP_SERVER_BIN` to test another build of the server. They do not reach the network.
 
 ## Licence
 

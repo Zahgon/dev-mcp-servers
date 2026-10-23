@@ -10,23 +10,22 @@ permissions:
 
 jobs:
   build-and-test:
-    name: Build and test every workspace (Node ${{ matrix.node }})
+    name: Build and test every server (Go ${{ matrix.go }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node: ["20", "22"]
+        go: ["1.23"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-go@v5
         with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
+          go-version: ${{ matrix.go }}
+      - run: go vet ./...
+      - run: CGO_ENABLED=0 go build ./...
+      - run: go test ./...
       - name: Check every server.json against the MCP registry schema
-        run: npm run check:server-json
+        run: go run ./scripts/check-server-json
 
   container-build:
     name: Build the container image for two servers

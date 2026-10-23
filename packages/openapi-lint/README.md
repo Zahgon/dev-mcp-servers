@@ -15,10 +15,16 @@ Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). St
 
 ## Install
 
+Build the binary from the repository root:
+
+```bash
+go build -o mcp-openapi-lint ./packages/openapi-lint/cmd/mcp-openapi-lint
+```
+
 Claude Code:
 
 ```bash
-claude mcp add openapi-lint -- npx -y @basitalisandhu/mcp-openapi-lint@0.1.0
+claude mcp add openapi-lint -- /path/to/mcp-openapi-lint
 ```
 
 Add `-s user` to make it available in every project. Any client that reads `.mcp.json` (Claude Code, Claude Desktop, Cursor):
@@ -27,14 +33,13 @@ Add `-s user` to make it available in every project. Any client that reads `.mcp
 {
   "mcpServers": {
     "openapi-lint": {
-      "command": "npx",
-      "args": ["-y", "@basitalisandhu/mcp-openapi-lint@0.1.0"]
+      "command": "/path/to/mcp-openapi-lint"
     }
   }
 }
 ```
 
-Pin the version as shown so that an update to the package cannot change what runs in your editor without you noticing. From a checkout, use `"command": "node", "args": ["<path>/packages/openapi-lint/dist/index.js"]` after `npm install && npm run build` at the repository root.
+A container image is published as `ghcr.io/basitalisandhu/mcp-openapi-lint`; pin a version tag such as `ghcr.io/basitalisandhu/mcp-openapi-lint:0.1.0` so that an update cannot change what runs in your editor without you noticing.
 
 ## What it touches
 
@@ -50,12 +55,11 @@ Pin the version as shown so that an update to the package cannot change what run
 ## Build and test
 
 ```bash
-npm install        # at the repository root
-npm run build -w @basitalisandhu/mcp-openapi-lint
-npm test -w @basitalisandhu/mcp-openapi-lint
+go build -o mcp-openapi-lint ./packages/openapi-lint/cmd/mcp-openapi-lint   # at the repository root
+go test ./packages/openapi-lint/...
 ```
 
-Tests use `node:test` and the SDK's in-memory transport; they do not reach the network.
+The tests drive the server over stdio (set `MCP_SERVER_BIN` to test another executable); they do not reach the network.
 
 ## Licence
 

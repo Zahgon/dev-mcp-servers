@@ -4,7 +4,7 @@ These servers run as child processes of your MCP client, with your user's permis
 
 ## Supported versions
 
-Only the latest release on `main` is supported. Pin a version in your `npx` arguments and update when a fix is announced in [CHANGELOG.md](CHANGELOG.md).
+Only the latest release on `main` is supported. Pin the release version of the binary or image you run and update when a fix is announced in [CHANGELOG.md](CHANGELOG.md).
 
 ## Reporting a vulnerability
 
@@ -34,6 +34,6 @@ Not vulnerabilities, but welcome as issues or pull requests: lint rules that mis
 
 - Stdio transport only; no server listens on a port.
 - No telemetry, no update checks.
-- Every tool input is validated with zod and bounded; files, responses and outputs have size caps; network, regex and git calls have timeouts.
+- Every tool input is validated against its schema and bounded; files, responses and outputs have size caps; network, regex and git calls have timeouts.
 - Eight of the ten servers make no network requests. The two that do contact only the documented host and refuse everything else before connecting.
-- Releases are published with npm provenance. Compare the attestation's commit with the tag in this repository before trusting a package.
+- Container images carry a build provenance attestation and release archives are listed in `SHA256SUMS`. Compare the attestation's commit with the tag in this repository before trusting an image.

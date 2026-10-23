@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows Keep
 
 ### Changed
 
+- Rewrote all ten servers in Go as one module (`go.mod` at the root, each server's main package in `packages/<name>/cmd/mcp-<name>`), with the same tools, inputs and results. The `node:test` suites became `go test` suites, `scripts/check-server-json.mjs` became `go run ./scripts/check-server-json`, the Dockerfile builds static binaries, and CI runs `go vet`, `go build` and `go test`.
+- Releases ship static binaries for linux and darwin (amd64, arm64) on the GitHub release and container images on GHCR; the npm packages, `package.json` files, the lockfile and the TypeScript configuration are gone, and each `server.json` lists its OCI image instead of an npm package.
 - Removed the umbrella branding; this project stands alone and links its sibling repositories directly.
 
 ## [0.1.0] - 2026-10-04

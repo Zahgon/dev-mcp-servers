@@ -1,7 +1,6 @@
 name: publish-github-packages
 
 # Publishes every server to GitHub Packages when a version tag is pushed, using only GITHUB_TOKEN:
-#   npm:        @basitalisandhu/mcp-<server> to https://npm.pkg.github.com
 #   containers: ghcr.io/basitalisandhu/mcp-<server>:<version> and :latest (linux/amd64, linux/arm64),
 #               each with an SPDX SBOM, a build provenance attestation and a keyless cosign signature
 # then creates the GitHub Release for the tag with generated notes and the SBOMs attached.
@@ -19,7 +18,11 @@ on:
       - "Dockerfile"
       - ".dockerignore"
       - ".github/workflows/publish-github-packages.yml"
-      - "packages/*/package.json"
+      - "packages/*/server.json"
+      - "packages/*/cmd/**"
+      - "internal/**"
+      - "go.mod"
+      - "go.sum"
   workflow_dispatch:
     inputs:
       publish:
@@ -54,67 +57,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-go@v5
         with:
-          node-version: "22"
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
-      - run: npm run check:server-json
+          go-version: "1.23"
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go run ./scripts/check-server-json
       - name: Version and server list (every version must match the tag)
         id: meta
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          VERSION=$(jq -r .version packages/openapi-lint/server.json)
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then VERSION="${GITHUB_REF_NAME#v}"; fi
-          for f in packages/*/package.json packages/*/server.json; do
-            V=$(node -p "require('./$f').version")
+          for f in packages/*/server.json; do
+            V=$(jq -r .version "$f")
             if [ "$V" != "$VERSION" ]; then echo "::error file=$f::version $V does not match $VERSION"; exit 1; fi
           done
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "servers=$(ls packages | node -e 'console.log(JSON.stringify(require("fs").readFileSync(0,"utf8").trim().split("\n")))')" >> "$GITHUB_OUTPUT"
-
-  publish-npm:
-    name: Publish npm packages to GitHub Packages
-    needs: build-test
-    if: ${{ github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "22"
-          cache: npm
-          registry-url: "https://npm.pkg.github.com"
-          scope: "@basitalisandhu"
-      - run: npm ci
-      - run: npm run build
-      - name: Publish each workspace, skipping versions that already exist
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          for dir in packages/*/; do
-            NAME=$(node -p "require('./${dir}package.json').name")
-            VERSION=$(node -p "require('./${dir}package.json').version")
-            if npm view "$NAME@$VERSION" version --registry https://npm.pkg.github.com >/dev/null 2>&1; then
-              echo "$NAME@$VERSION already exists, skipping"
-              continue
-            fi
-            if ! OUT=$(npm publish --workspace "$dir" 2>&1); then
-              echo "$OUT"
-              if echo "$OUT" | grep -qiE "E409|EPUBLISHCONFLICT|cannot publish over"; then
-                echo "$NAME@$VERSION already exists, skipping"
-                continue
-              fi
-              exit 1
-            fi
-            echo "Published $NAME@$VERSION"
-          done
+          echo "servers=$(ls packages | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
 
   publish-containers:
     name: Image mcp-${{ matrix.server }}
@@ -136,9 +95,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Image description from package.json
+      - name: Image description from server.json
         id: desc
-        run: echo "text=$(node -p "require('./packages/${{ matrix.server }}/package.json').description")" >> "$GITHUB_OUTPUT"
+        run: echo "text=$(jq -r .description 'packages/${{ matrix.server }}/server.json')" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Log in to GHCR
@@ -213,7 +172,7 @@ jobs:
 
   release:
     name: GitHub Release
-    needs: [build-test, publish-npm, publish-containers]
+    needs: [build-test, publish-containers]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:

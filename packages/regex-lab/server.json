@@ -12,11 +12,8 @@
   "version": "0.1.0",
   "packages": [
     {
-      "registryType": "npm",
-      "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "@basitalisandhu/mcp-regex-lab",
-      "version": "0.1.0",
-      "runtimeHint": "npx",
+      "registryType": "oci",
+      "identifier": "ghcr.io/basitalisandhu/mcp-regex-lab:0.1.0",
       "transport": {
         "type": "stdio"
       }

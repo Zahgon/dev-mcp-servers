@@ -6,28 +6,28 @@ Thank you for improving these servers. The repository values precision over volu
 
 - **No telemetry, no surprise network calls.** Network access is allowed only where the tool's purpose is network, and then only to the documented host, with an allowlist check before the request, a timeout and a response size cap. Tests must use a fake `fetch`.
 - **Stdio only.** Do not add HTTP or SSE transports.
-- **Bounded inputs.** Every tool input needs a zod schema with length or range limits. Files are read with size caps. Anything that can loop or recurse has an iteration or depth cap.
+- **Bounded inputs.** Every tool input needs a schema with length or range limits, checked before the tool runs. Files are read with size caps. Anything that can loop or recurse has an iteration or depth cap.
 - **Read-only.** Servers do not write files or run shells. If a tool needs a subprocess (as git-insights does), spawn it without a shell, from a fixed argument list, with validated arguments after `--`, a timeout and an output cap.
-- **Minimal dependencies.** `@modelcontextprotocol/sdk` and `zod` are the baseline. Add a dependency only when implementing the thing yourself would be larger than the dependency and worse; say why in the pull request.
+- **Minimal dependencies.** The Go standard library is the baseline (`gopkg.in/yaml.v3` is the one exception, for openapi-lint). Add a module only when implementing the thing yourself would be larger than the module and worse; say why in the pull request.
 - **Tool descriptions are read by models.** Say what the tool does, what it returns, what it refuses and what its limits are. Do not put instructions to the model in a description, and do not overstate certainty: a heuristic is called a heuristic.
-- **Tests come with code.** Every tool is called at least once over `InMemoryTransport` in `test/*.test.mjs`, including with an invalid input. Logic lives in modules that can be tested without MCP.
+- **Tests come with code.** Every tool is called at least once over stdio in the package's `*_test.go` suite, including with an invalid input.
 - **No model version strings** in code, descriptions or docs; the servers work with whatever model the client runs.
 - **Plain language.** Write for a developer who has not used MCP before. Avoid em-dashes; use commas, colons or full stops.
 
 ## Workflow
 
 ```bash
-npm install
-npm run build
-npm test
-npm run check:server-json
+go vet ./...
+go build ./...
+go test ./...
+go run ./scripts/check-server-json
 ```
 
-Work in one package at a time: `npm test -w @basitalisandhu/mcp-<name>`. Node 20 and 22 are both supported; CI runs both.
+Work in one package at a time: `go test ./packages/<name>/...`. Go 1.23 or newer is supported; CI runs 1.23.
 
 ## Adding a tool or a server
 
-See "Adding a server" in [README.md](README.md). For a new tool in an existing server: register it in `src/index.ts` with a schema, annotations and a description; implement the logic in a module; add tests; add a row to the package README's tool table and a line to `CHANGELOG.md`.
+See "Adding a server" in [README.md](README.md). For a new tool in an existing server: register it in the server's `cmd/mcp-<name>` package with a schema, annotations and a description; implement the logic; add tests; add a row to the package README's tool table and a line to `CHANGELOG.md`.
 
 ## Pull requests
 

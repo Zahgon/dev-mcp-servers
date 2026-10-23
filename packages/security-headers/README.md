@@ -14,10 +14,16 @@ Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). St
 
 ## Install
 
+Build the server from the repository root:
+
+```bash
+go build -o mcp-security-headers ./packages/security-headers/cmd/mcp-security-headers
+```
+
 Claude Code:
 
 ```bash
-claude mcp add security-headers -- npx -y @basitalisandhu/mcp-security-headers@0.1.0
+claude mcp add security-headers -- /path/to/mcp-security-headers
 ```
 
 Add `-s user` to make it available in every project. Any client that reads `.mcp.json` (Claude Code, Claude Desktop, Cursor):
@@ -26,14 +32,13 @@ Add `-s user` to make it available in every project. Any client that reads `.mcp
 {
   "mcpServers": {
     "security-headers": {
-      "command": "npx",
-      "args": ["-y", "@basitalisandhu/mcp-security-headers@0.1.0"]
+      "command": "/path/to/mcp-security-headers"
     }
   }
 }
 ```
 
-Pin the version as shown so that an update to the package cannot change what runs in your editor without you noticing. From a checkout, use `"command": "node", "args": ["<path>/packages/security-headers/dist/index.js"]` after `npm install && npm run build` at the repository root.
+A container image is published as `ghcr.io/basitalisandhu/mcp-security-headers`. Pin a version tag (for example `:0.1.0`) so that an update cannot change what runs in your editor without you noticing.
 
 ## What it touches
 
@@ -50,12 +55,11 @@ Pin the version as shown so that an update to the package cannot change what run
 ## Build and test
 
 ```bash
-npm install        # at the repository root
-npm run build -w @basitalisandhu/mcp-security-headers
-npm test -w @basitalisandhu/mcp-security-headers
+go build -o mcp-security-headers ./packages/security-headers/cmd/mcp-security-headers   # at the repository root
+go test ./packages/security-headers/...
 ```
 
-Tests use `node:test` and the SDK's in-memory transport; they do not reach the network.
+The tests drive the server over stdio, and the cases that need a fetch double and a resolver run in-process with an injected transport; they do not reach the network. Set `MCP_SERVER_BIN` to test another server executable (the in-process cases are then skipped).
 
 ## Licence
 

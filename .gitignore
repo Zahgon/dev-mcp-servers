@@ -1,21 +1,9 @@
-node_modules/
-dist/
-*.tgz
-.DS_Store
-npm-debug.log*
-
 # build and environment artifacts
-node_modules/
-.venv/
-venv/
-dist/
-build/
-__pycache__/
-*.pyc
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-*.egg-info/
+/bin/
+/dist/
+*.test
+*.out
+coverage.*
 .DS_Store
 .semgrep/
 results.sarif

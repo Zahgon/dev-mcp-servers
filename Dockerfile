@@ -5,30 +5,28 @@
 # and run it on stdio (no port is opened):
 #   docker run --rm -i mcp-jwt-tools
 #
-# The base image is pinned by digest (node:22-alpine, multi-arch index).
-ARG NODE_IMAGE=node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+# Base images are pinned by digest (multi-arch indexes).
+ARG GO_IMAGE=golang:1.23.12-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f
+ARG RUNTIME_IMAGE=alpine:3.22@sha256:d406446bc05b82480756ce8f1287964d28768c23955fa9480d2a74a2eae7a654
 
-# Build on the runner's own platform: the output is plain JavaScript and the dependencies have no native code.
-FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS build
+# Cross-compile on the runner's own platform: the servers are pure Go with cgo off.
+FROM --platform=$BUILDPLATFORM ${GO_IMAGE} AS build
 ARG SERVER
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /src
-COPY package.json package-lock.json tsconfig.base.json ./
+COPY go.mod go.sum ./
+RUN go mod download
+COPY internal/ internal/
 COPY packages/ packages/
-RUN if [ -z "${SERVER}" ] || [ ! -f "packages/${SERVER}/package.json" ]; then \
+RUN if [ -z "${SERVER}" ] || [ ! -d "packages/${SERVER}/cmd/mcp-${SERVER}" ]; then \
       echo "Set --build-arg SERVER to one of: $(ls packages | tr '\n' ' ')" >&2; exit 1; \
     fi
-RUN npm ci --ignore-scripts --no-audit --no-fund \
- && npm run build --workspace "packages/${SERVER}"
-# Production tree for this one server: runtime dependencies from the committed lockfile, plus its dist/.
-WORKDIR /out
-RUN cp /src/package.json /src/package-lock.json ./ \
- && for p in /src/packages/*/; do mkdir -p "packages/$(basename "$p")" && cp "$p/package.json" "packages/$(basename "$p")/"; done \
- && npm ci --omit=dev --ignore-scripts --no-audit --no-fund --workspace "packages/${SERVER}" \
- && cp -R "/src/packages/${SERVER}/dist" "/src/packages/${SERVER}/README.md" "packages/${SERVER}/" \
- && find packages -mindepth 1 -maxdepth 1 -type d ! -name "${SERVER}" -exec rm -rf {} + \
- && rm -rf /root/.npm
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -trimpath -ldflags="-s -w" -o /out/mcp-server "./packages/${SERVER}/cmd/mcp-${SERVER}" \
+ && cp "packages/${SERVER}/README.md" /out/README.md
 
-FROM ${NODE_IMAGE}
+FROM ${RUNTIME_IMAGE}
 ARG SERVER
 ARG VERSION=0.0.0-dev
 LABEL org.opencontainers.image.title="mcp-${SERVER}" \
@@ -44,9 +42,9 @@ RUN if [ "${SERVER}" = "git-insights" ]; then \
       apk add --no-cache git \
       && git config --system --add safe.directory /repo \
       && git config --system --add safe.directory '/repo/*'; \
-    fi
-ENV NODE_ENV=production
+    fi \
+ && adduser -D -u 1000 mcp
 COPY --from=build /out/ /app/
-WORKDIR /app/packages/${SERVER}
-USER node
-ENTRYPOINT ["node", "dist/index.js"]
+WORKDIR /app
+USER mcp
+ENTRYPOINT ["/app/mcp-server"]

@@ -17,10 +17,16 @@ Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). St
 
 ## Install
 
+Build the server from the repository root:
+
+```bash
+go build -o mcp-git-insights ./packages/git-insights/cmd/mcp-git-insights
+```
+
 Claude Code:
 
 ```bash
-claude mcp add git-insights -- npx -y @basitalisandhu/mcp-git-insights@0.1.0
+claude mcp add git-insights -- /path/to/mcp-git-insights
 ```
 
 Add `-s user` to make it available in every project. Any client that reads `.mcp.json` (Claude Code, Claude Desktop, Cursor):
@@ -29,14 +35,13 @@ Add `-s user` to make it available in every project. Any client that reads `.mcp
 {
   "mcpServers": {
     "git-insights": {
-      "command": "npx",
-      "args": ["-y", "@basitalisandhu/mcp-git-insights@0.1.0"]
+      "command": "/path/to/mcp-git-insights"
     }
   }
 }
 ```
 
-Pin the version as shown so that an update to the package cannot change what runs in your editor without you noticing. From a checkout, use `"command": "node", "args": ["<path>/packages/git-insights/dist/index.js"]` after `npm install && npm run build` at the repository root.
+A container image is published as `ghcr.io/basitalisandhu/mcp-git-insights`. Pin a version tag (for example `:0.1.0`) so that an update cannot change what runs in your editor without you noticing.
 
 ## What it touches
 
@@ -52,12 +57,11 @@ Pin the version as shown so that an update to the package cannot change what run
 ## Build and test
 
 ```bash
-npm install        # at the repository root
-npm run build -w @basitalisandhu/mcp-git-insights
-npm test -w @basitalisandhu/mcp-git-insights
+go build -o mcp-git-insights ./packages/git-insights/cmd/mcp-git-insights   # at the repository root
+go test ./packages/git-insights/...
 ```
 
-Tests use `node:test` and the SDK's in-memory transport; they do not reach the network.
+The tests build throwaway repositories in temporary directories and drive the server over stdio; they do not reach the network. Set `MCP_SERVER_BIN` to test another server executable.
 
 ## Licence
 

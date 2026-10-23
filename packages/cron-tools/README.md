@@ -1,6 +1,6 @@
 # cron-tools MCP server
 
-Parses, explains, validates and schedules 5-field cron expressions in the Vixie cron dialect (Linux crontab, GitHub Actions, most schedulers), including lists, ranges, steps, month and weekday names, 0 or 7 for Sunday and the `@hourly` to `@yearly` macros. Time zone arithmetic uses `Intl` only; there are no dependencies beyond the MCP SDK and zod.
+Parses, explains, validates and schedules 5-field cron expressions in the Vixie cron dialect (Linux crontab, GitHub Actions, most schedulers), including lists, ranges, steps, month and weekday names, 0 or 7 for Sunday and the `@hourly` to `@yearly` macros. Time zone arithmetic uses the Go standard library with the IANA time zone database embedded in the binary; there are no dependencies beyond the Go standard library.
 
 Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). Stdio transport only; the server never opens a port.
 
@@ -15,10 +15,16 @@ Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). St
 
 ## Install
 
+Build the binary from the repository root:
+
+```bash
+go build -o mcp-cron-tools ./packages/cron-tools/cmd/mcp-cron-tools
+```
+
 Claude Code:
 
 ```bash
-claude mcp add cron-tools -- npx -y @basitalisandhu/mcp-cron-tools@0.1.0
+claude mcp add cron-tools -- /path/to/mcp-cron-tools
 ```
 
 Add `-s user` to make it available in every project. Any client that reads `.mcp.json` (Claude Code, Claude Desktop, Cursor):
@@ -27,14 +33,13 @@ Add `-s user` to make it available in every project. Any client that reads `.mcp
 {
   "mcpServers": {
     "cron-tools": {
-      "command": "npx",
-      "args": ["-y", "@basitalisandhu/mcp-cron-tools@0.1.0"]
+      "command": "/path/to/mcp-cron-tools"
     }
   }
 }
 ```
 
-Pin the version as shown so that an update to the package cannot change what runs in your editor without you noticing. From a checkout, use `"command": "node", "args": ["<path>/packages/cron-tools/dist/index.js"]` after `npm install && npm run build` at the repository root.
+A container image is published as `ghcr.io/basitalisandhu/mcp-cron-tools`; pin a version tag such as `ghcr.io/basitalisandhu/mcp-cron-tools:0.1.0` so that an update cannot change what runs in your editor without you noticing.
 
 ## What it touches
 
@@ -50,12 +55,11 @@ Pin the version as shown so that an update to the package cannot change what run
 ## Build and test
 
 ```bash
-npm install        # at the repository root
-npm run build -w @basitalisandhu/mcp-cron-tools
-npm test -w @basitalisandhu/mcp-cron-tools
+go build -o mcp-cron-tools ./packages/cron-tools/cmd/mcp-cron-tools   # at the repository root
+go test ./packages/cron-tools/...
 ```
 
-Tests use `node:test` and the SDK's in-memory transport; they do not reach the network.
+The tests drive the server over stdio (set `MCP_SERVER_BIN` to test another executable); they do not reach the network.
 
 ## Licence
 

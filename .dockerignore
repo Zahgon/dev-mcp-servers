@@ -1,6 +1,7 @@
-**/node_modules
-**/dist
-**/*.tgz
+**/mcp-*.test
+**/*.test
+/bin/
+/dist/
 .git
 .github
 docs

@@ -1,6 +1,6 @@
 # regex-lab MCP server
 
-Tests JavaScript regular expressions against sample strings, explains a pattern construct by construct, and looks for catastrophic backtracking. Every execution runs in a worker thread that is terminated when it exceeds the timeout, so a pathological pattern cannot hang the server.
+Tests JavaScript regular expressions against sample strings, explains a pattern construct by construct, and looks for catastrophic backtracking. Every execution is stopped when it exceeds the timeout, so a pathological pattern cannot hang the server.
 
 Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). Stdio transport only; the server never opens a port.
 
@@ -14,10 +14,16 @@ Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). St
 
 ## Install
 
+Build the binary from the repository root:
+
+```bash
+go build -o mcp-regex-lab ./packages/regex-lab/cmd/mcp-regex-lab
+```
+
 Claude Code:
 
 ```bash
-claude mcp add regex-lab -- npx -y @basitalisandhu/mcp-regex-lab@0.1.0
+claude mcp add regex-lab -- /path/to/mcp-regex-lab
 ```
 
 Add `-s user` to make it available in every project. Any client that reads `.mcp.json` (Claude Code, Claude Desktop, Cursor):
@@ -26,14 +32,13 @@ Add `-s user` to make it available in every project. Any client that reads `.mcp
 {
   "mcpServers": {
     "regex-lab": {
-      "command": "npx",
-      "args": ["-y", "@basitalisandhu/mcp-regex-lab@0.1.0"]
+      "command": "/path/to/mcp-regex-lab"
     }
   }
 }
 ```
 
-Pin the version as shown so that an update to the package cannot change what runs in your editor without you noticing. From a checkout, use `"command": "node", "args": ["<path>/packages/regex-lab/dist/index.js"]` after `npm install && npm run build` at the repository root.
+A container image is published as `ghcr.io/basitalisandhu/mcp-regex-lab`; pin a version tag such as `ghcr.io/basitalisandhu/mcp-regex-lab:0.1.0` so that an update cannot change what runs in your editor without you noticing.
 
 ## What it touches
 
@@ -43,19 +48,18 @@ Pin the version as shown so that an update to the package cannot change what run
 
 ## Notes
 
-- Syntax follows V8 (Node.js). PCRE, RE2 and Python differ in places such as possessive quantifiers and lookbehind.
+- Syntax and matching follow V8 (Node.js), implemented by an ECMAScript regular expression engine in Go. PCRE, RE2 and Python differ in places such as possessive quantifiers and lookbehind.
 - `g` and `d` flags are added automatically when matching; the replacement preview uses the flags you gave.
 - No findings and flat timings are evidence, not proof, that a pattern is safe.
 
 ## Build and test
 
 ```bash
-npm install        # at the repository root
-npm run build -w @basitalisandhu/mcp-regex-lab
-npm test -w @basitalisandhu/mcp-regex-lab
+go build -o mcp-regex-lab ./packages/regex-lab/cmd/mcp-regex-lab   # at the repository root
+go test ./packages/regex-lab/...
 ```
 
-Tests use `node:test` and the SDK's in-memory transport; they do not reach the network.
+The tests drive the server over stdio (set `MCP_SERVER_BIN` to test another executable); they do not reach the network.
 
 ## Licence
 

@@ -1,6 +1,6 @@
 # json-schema-tools MCP server
 
-Validates JSON against JSON Schema drafts 07, 2019-09 and 2020-12 with [Ajv](https://ajv.js.org/), infers a schema from sample documents, and diffs two schemas with a compatibility verdict per change.
+Validates JSON against JSON Schema drafts 07, 2019-09 and 2020-12 with a Go validator that behaves as [Ajv](https://ajv.js.org/) 8 with ajv-formats does, infers a schema from sample documents, and diffs two schemas with a compatibility verdict per change.
 
 Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). Stdio transport only; the server never opens a port.
 
@@ -14,10 +14,16 @@ Part of [dev-mcp-servers](https://github.com/basitalisandhu/dev-mcp-servers). St
 
 ## Install
 
+Build the binary from the repository root:
+
+```bash
+go build -o mcp-json-schema-tools ./packages/json-schema-tools/cmd/mcp-json-schema-tools
+```
+
 Claude Code:
 
 ```bash
-claude mcp add json-schema-tools -- npx -y @basitalisandhu/mcp-json-schema-tools@0.1.0
+claude mcp add json-schema-tools -- /path/to/mcp-json-schema-tools
 ```
 
 Add `-s user` to make it available in every project. Any client that reads `.mcp.json` (Claude Code, Claude Desktop, Cursor):
@@ -26,14 +32,13 @@ Add `-s user` to make it available in every project. Any client that reads `.mcp
 {
   "mcpServers": {
     "json-schema-tools": {
-      "command": "npx",
-      "args": ["-y", "@basitalisandhu/mcp-json-schema-tools@0.1.0"]
+      "command": "/path/to/mcp-json-schema-tools"
     }
   }
 }
 ```
 
-Pin the version as shown so that an update to the package cannot change what runs in your editor without you noticing. From a checkout, use `"command": "node", "args": ["<path>/packages/json-schema-tools/dist/index.js"]` after `npm install && npm run build` at the repository root.
+A container image is published as `ghcr.io/basitalisandhu/mcp-json-schema-tools`; pin a version tag such as `ghcr.io/basitalisandhu/mcp-json-schema-tools:0.1.0` so that an update cannot change what runs in your editor without you noticing.
 
 ## What it touches
 
@@ -43,19 +48,18 @@ Pin the version as shown so that an update to the package cannot change what run
 
 ## Notes
 
-- Ajv runs with `strict: false` so real-world schemas with unknown keywords still validate.
+- Validation runs as Ajv's `strict: false` mode does, so real-world schemas with unknown keywords still validate.
 - Draft-04 and draft-06 schemas are rejected; update `$schema` or remove it.
 - Schemas and documents can be passed as JSON values or as JSON strings; both are capped at 2 MB.
 
 ## Build and test
 
 ```bash
-npm install        # at the repository root
-npm run build -w @basitalisandhu/mcp-json-schema-tools
-npm test -w @basitalisandhu/mcp-json-schema-tools
+go build -o mcp-json-schema-tools ./packages/json-schema-tools/cmd/mcp-json-schema-tools   # at the repository root
+go test ./packages/json-schema-tools/...
 ```
 
-Tests use `node:test` and the SDK's in-memory transport; they do not reach the network.
+The tests drive the server over stdio (set `MCP_SERVER_BIN` to test another executable); they do not reach the network.
 
 ## Licence
 
